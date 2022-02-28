@@ -185,7 +185,8 @@ class RealESRGANer:
         return self.output
 
     def __call__(self, img, **kwargs):
-        return self.enhance(img, **kwargs)
+        sr, color_mode = self.enhance(img, **kwargs)
+        return sr
 
     @torch.no_grad()
     def enhance(self, img, outscale=None, alpha_upsampler="realesrgan"):
@@ -277,15 +278,19 @@ class PrefetchReader(threading.Thread):
         num_prefetch_queue (int): Number of prefetch queue.
     """
 
-    def __init__(self, img_list, num_prefetch_queue):
+    def __init__(self, img_list, num_prefetch_queue, return_path=False):
         super().__init__()
         self.que = queue.Queue(num_prefetch_queue)
         self.img_list = img_list
+        self.return_path = return_path
 
     def run(self):
         for img_path in self.img_list:
-            img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
-            self.que.put(img)
+            img = cv2.imread(str(img_path), cv2.IMREAD_UNCHANGED)
+            if not self.return_path:
+                self.que.put(img)
+            else:
+                self.que.put((img, img_path))
 
         self.que.put(None)
 
